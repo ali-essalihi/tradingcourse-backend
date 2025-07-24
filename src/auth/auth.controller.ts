@@ -21,7 +21,8 @@ import {
   refreshTokenExpiry,
   sessionPayloadCookieName,
   sessionPayloadBaseCookieOptions,
-  minRefreshIntervalMS
+  minRefreshIntervalMS,
+  accessTokenExpiry
 } from "./auth.config";
 import ms from "ms";
 import env from "../env";
@@ -135,8 +136,9 @@ export function handleTokenRefresh(req: Request, res: Response) {
   }
 
   const accessToken = generateAccessToken(sessionPayload.userData);
+  const expiryMS = ms(accessTokenExpiry);
 
-  res.json({ accessToken });
+  res.json({ accessToken, expiryMS });
 }
 
 export function getAuthenticatedUser(req: Request, res: Response) {
