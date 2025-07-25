@@ -20,7 +20,7 @@ app.use(
     methods: ["GET", "HEAD", "POST", "PATCH", "DELETE", "PUT"],
     // Cache results of a preflight request for 1 day (86400 seconds)
     maxAge: 60 * 60 * 24,
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
     exposedHeaders: [],
     origin: env.CLIENT_ORIGIN
