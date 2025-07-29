@@ -1,9 +1,13 @@
 import type { Request, Response } from "express";
-import { getBunnyLibInfo, getBunnyLibVideos } from "./bunny/bunny.utils";
+import type { CourseRes } from "./course.types";
+import { getBunnyLibVideos } from "./bunny/bunny.utils";
 
-export function getCourse(req: Request, res: Response) {
+export function getCourse(req: Request, res: Response<CourseRes>) {
   res.json({
-    lib: getBunnyLibInfo(),
-    videos: getBunnyLibVideos()
+    videos: getBunnyLibVideos().arr.map(v => ({
+      id: v.guid,
+      title: v.title,
+      durationInSeconds: v.length
+    }))
   });
 }
