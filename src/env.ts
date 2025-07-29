@@ -8,7 +8,10 @@ const envSchema = z.object({
   OAUTH_STATE_SECRET: z.string().nonempty(),
   CLIENT_ORIGIN: z.url(),
   COOKIE_SECRET: z.string().nonempty(),
-  ACCESS_TOKEN_SECRET: z.string().nonempty()
+  ACCESS_TOKEN_SECRET: z.string().nonempty(),
+  BUNNY_API_KEY: z.string().nonempty(),
+  BUNNY_LIB_ID: z.coerce.number().int(),
+  BUNNY_LIB_SECRET: z.string().nonempty()
 });
 
 const envParsed = envSchema.safeParse(process.env);
