@@ -5,3 +5,6 @@ dist
 # SQLite database files
 *.db*
 *.sqlite*
+
+# Cache
+.cache

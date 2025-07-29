@@ -1,8 +1,15 @@
 import "dotenv/config";
-import app from "./app";
 import env from "./env";
+import { initBunny } from "./course/bunny/bunny.utils";
+import app from "./app";
 
-app.listen(env.PORT, "0.0.0.0", err => {
-  if (err) throw err;
-  console.log(`Server is listening on port ${env.PORT}`);
-});
+async function start() {
+  await initBunny();
+
+  app.listen(env.PORT, "0.0.0.0", err => {
+    if (err) throw err;
+    console.log(`Server is listening on port ${env.PORT}`);
+  });
+}
+
+start();
