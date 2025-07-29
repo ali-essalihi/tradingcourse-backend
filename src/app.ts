@@ -6,6 +6,7 @@ import hpp from "hpp";
 import helmet from "helmet";
 import cors from "cors";
 import env from "./env";
+import courseRouter from "./course/course.routes";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use(hpp());
 app.use(cookieParser(env.COOKIE_SECRET));
 
 app.use("/auth", authRouter);
+app.use("/course", courseRouter);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Resource not found" });
