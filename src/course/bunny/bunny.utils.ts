@@ -3,6 +3,8 @@ import fetch from "node-fetch";
 import env from "../../env";
 import path from "path";
 import { cacheAsyncData } from "../../utils/misc";
+import { createHash } from "crypto";
+import { videoTokenExpirationSeconds } from "../course.config";
 
 const cacheDir = path.resolve(".cache");
 
@@ -76,6 +78,23 @@ export function getBunnyLibVideos() {
     map: bunnyLibVideosMap,
     arr: bunnyLibVideosArr
   };
+}
+
+export function generateVideoAccessToken(videoId: string, expires: string) {
+  return createHash("sha256")
+    .update(env.BUNNY_LIB_SECRET + videoId + expires)
+    .digest("hex");
+}
+
+export function generateVideoEmbedUrl(videoId: string) {
+  const url = new URL(`https://iframe.mediadelivery.net/embed/${env.BUNNY_LIB_ID}/${videoId}`);
+  const expires = (Math.floor(Date.now() / 1000) + videoTokenExpirationSeconds).toString();
+  const params = new URLSearchParams({
+    token: generateVideoAccessToken(videoId, expires),
+    expires
+  });
+  url.search = params.toString();
+  return url.toString();
 }
 
 export async function initBunny() {
