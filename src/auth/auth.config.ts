@@ -8,10 +8,7 @@ export const oatuhStateBaseCookieOptions: CookieOptions = {
   httpOnly: true,
   sameSite: "none"
 };
-export const authFailureRedirectUrl = new URL(
-  "/error?code=auth_failed",
-  env.CLIENT_ORIGIN
-).toString();
+export const authFailureRedirectUrl = new URL("/error/auth_failed", env.CLIENT_ORIGIN).toString();
 
 export const refreshTokenSize = 16;
 export const refreshTokenExpiry = "7d";

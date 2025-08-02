@@ -46,61 +46,68 @@ export function getGoogleAuthUrl(req: Request, res: Response) {
 }
 
 export async function handleGoogleCallback(req: Request, res: Response) {
-  const parsedQuery = googleCallbackQuerySchema.safeParse(req.query);
-  const parsedCookies = googleCallbackCookiesSchema.safeParse(req.cookies);
+  try {
+    const parsedQuery = googleCallbackQuerySchema.safeParse(req.query);
+    const parsedCookies = googleCallbackCookiesSchema.safeParse(req.cookies);
 
-  function failureRedirect() {
+    if (!parsedQuery.success) {
+      throw new Error("Invalid query parameters");
+    }
+
+    if (!parsedCookies.success) {
+      throw new Error("Invalid cookies");
+    }
+
+    if ("error" in parsedQuery.data) {
+      throw new Error("OAuth error returned in query");
+    }
+
+    if (parsedCookies.data.oauth_state !== parsedQuery.data.state) {
+      throw new Error("OAuth state mismatch");
+    }
+
+    const decodedState = verifyOauthState(parsedQuery.data.state);
+    if (!decodedState) {
+      throw new Error("Invalid OAuth state");
+    }
+
+    const idToken = await fetchGoogleIdToken(parsedQuery.data.code);
+    const idTokenDecoded = decodeGoogleIdToken(idToken);
+
+    const user = userModel.findByGoogleId(idTokenDecoded.sub);
+    const userId =
+      (user && user.id) ||
+      userModel.create({ google_id: idTokenDecoded.sub, email: idTokenDecoded.email });
+
+    const refreshTokenDurationMS = ms(refreshTokenExpiry);
+    const refreshTokenExpires = new Date(Date.now() + refreshTokenDurationMS);
+    const refreshTokenValue = generateRefreshToken();
+
+    refreshTokenModel.create({
+      token: refreshTokenValue,
+      expires: refreshTokenExpires.toISOString(),
+      user_id: userId as number
+    });
+
+    const sessionPayload: SessionPayload = {
+      refreshToken: refreshTokenValue,
+      userData: {
+        googleId: idTokenDecoded.sub,
+        email: idTokenDecoded.email,
+        name: idTokenDecoded.name ?? null,
+        picture: idTokenDecoded.picture ?? null
+      }
+    };
+
+    res.cookie(sessionPayloadCookieName, sessionPayload, {
+      ...sessionPayloadBaseCookieOptions,
+      maxAge: refreshTokenDurationMS
+    });
+
+    res.redirect(302, new URL(decodedState.next_url, env.CLIENT_ORIGIN).toString());
+  } catch (error) {
     res.redirect(302, authFailureRedirectUrl);
   }
-
-  if (!parsedQuery.success || !parsedCookies.success) {
-    return failureRedirect();
-  }
-
-  if ("error" in parsedQuery.data || parsedCookies.data.oauth_state !== parsedQuery.data.state) {
-    return failureRedirect();
-  }
-
-  const decodedState = verifyOauthState(parsedQuery.data.state);
-
-  if (!decodedState) {
-    return failureRedirect();
-  }
-
-  const idToken = await fetchGoogleIdToken(parsedQuery.data.code);
-  const idTokenDecoded = decodeGoogleIdToken(idToken);
-
-  const user = userModel.findByGoogleId(idTokenDecoded.sub);
-  const userId =
-    (user && user.id) ||
-    userModel.create({ google_id: idTokenDecoded.sub, email: idTokenDecoded.email });
-
-  const refreshTokenDurationMS = ms(refreshTokenExpiry);
-  const refreshTokenExpires = new Date(Date.now() + refreshTokenDurationMS);
-  const refreshTokenValue = generateRefreshToken();
-
-  refreshTokenModel.create({
-    token: refreshTokenValue,
-    expires: refreshTokenExpires.toISOString(),
-    user_id: userId as number
-  });
-
-  const sessionPayload: SessionPayload = {
-    refreshToken: refreshTokenValue,
-    userData: {
-      googleId: idTokenDecoded.sub,
-      email: idTokenDecoded.email,
-      name: idTokenDecoded.name ?? null,
-      picture: idTokenDecoded.picture ?? null
-    }
-  };
-
-  res.cookie(sessionPayloadCookieName, sessionPayload, {
-    ...sessionPayloadBaseCookieOptions,
-    maxAge: refreshTokenDurationMS
-  });
-
-  res.redirect(302, new URL(decodedState.next_url, env.CLIENT_ORIGIN).toString());
 }
 
 export function handleTokenRefresh(req: Request, res: Response) {
